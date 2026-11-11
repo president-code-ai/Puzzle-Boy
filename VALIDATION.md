@@ -1,6 +1,6 @@
 # 検証記録
 
-確認日：2026年11月12日（日本時間）。作業対象は新規 `puzzle-boy/` のみ。他プロジェクト・システム設定・アカウント・公開設定は変更していません。依存ライブラリや実行ファイルの新規導入はありません。
+確認日：2026年11月12日（日本時間）。作業対象は `puzzle-boy/` と指定された `president-code-ai/Puzzle-Boy` のみ。他プロジェクトやその公開設定、システム設定、アカウントは変更していません。今回のPages設定は末尾に記録しています。依存ライブラリや実行ファイルの新規導入はありません。
 
 ## 構成と情報の流れ
 
@@ -60,12 +60,18 @@ Node.js 22.23.4で `node --test tests/core.cjs`：9件成功、失敗0。
 
 実スマートフォン・Safari・Firefox、実音の聴取、日本語版実機との直接照合は未実施です。盤面一致は公開された初代Kwirk/GB版解析データに対するものです。
 
-## 2026-11-12：GitHub Pagesへの公開準備
+## 2026-11-12：GitHub Pagesへの公開
 
-依頼者の指定した `Puzzle-Boy` が、所有者 `president-code-ai` の空の公開リポジトリとして作成済みであることを確認。依頼済みのコミット・プッシュ、Pages公開、QR作成を進めます。ゲーム本体の処理は変更せず、公開確認用のテストURL対応と説明文・QRを追加しています。
+依頼者の指定した `Puzzle-Boy` が、所有者 `president-code-ai` の空の公開リポジトリとして作成済みであることを確認し、依頼済みのコミット・プッシュ、Pages公開、QR作成を実施しました。ゲーム本体の処理は変更せず、公開確認用のテストURL対応と説明文・QRを追加しています。
 
 既存の自作QRエンコーダーを再利用し、依存追加なしで `assets/Puzzle-Boy-QR.png` とSVGを生成。収録先は `https://president-code-ai.github.io/Puzzle-Boy/`。Version 4 / 誤り訂正M / 4モジュール余白 / 984×984px。PNGからの復号URL一致、PNGのCRC、Reed–Solomonシンドロームを検証済みです。外部QRサービス・短縮URL・追跡はありません。
 
 公開前の独立セキュリティ・品質レビューは完了。staged 25ファイルを両担当が確認し、認証処理・調査資料・ブラウザ記録の混入なし、重大・高リスクと修正必須の指摘なし。品質担当は生成器とは別の処理でQRのURL復号、全画素、CRC、誤り訂正符号、余白、PNGとSVGの全モジュール一致を確認しました。Nodeテスト9件、公開対応を追加したテストによるローカルEdge15項目も全成功です。
 
-公開後にPagesのビルド結果、トップと配信資源のHTTP 200・SHA-256一致、公開URLでのEdge操作を確認します。結果を確認するまでは公開成功として扱いません。
+初回コミット `87766e13ba12015d314b2cd5ace53ddeab82bec9` をmainへ通常プッシュ。Pagesの公開元を `main` の `/` に設定し、HTTPSを有効化しました。GitHubのPages実行 `43078155830` はsuccess、Pages buildも同コミットでbuiltです。認証情報・既存の認証方式・他リポジトリの設定は変更していません。
+
+公開URL `https://president-code-ai.github.io/Puzzle-Boy/` のトップ、本体CSS/JavaScriptの6資源、QRのPNG/SVGの計9ファイルは、すべてHTTP 200、SHA-256でローカル原本と完全一致しました。結果は非公開の `.verification/pages-live.json` に記録しています。
+
+同URLを対象に `PUZZLE_BOY_BROWSER_APPROVED=1; PUZZLE_BOY_TEST_URL=https://president-code-ai.github.io/Puzzle-Boy/; node tests/browser.cjs` を実行。Edge 157で上記と同じ15項目をすべて通過しました。直接盤面表示、スマホ縦横表示、タッチ模擬、クリアと次面、仲間切替、Undo、全30面の描画、9種類の音の波形を確認。ページ要求は同一Pages配下の本体7ファイルと完全一致し、JavaScript例外・CSPエラーは0件です。結果と画像は非公開の `.verification/pages/` に保存し、ブラウザは終了済みです。
+
+QRは公開済みHTTPS URLへ直接つながります。独立した復号確認と配信ハッシュの一致は確認済みですが、実スマートフォンのカメラでの読み取り、Safari/Firefoxでの実操作、スピーカーからの聴取は未確認です。公開後の記録追記ではゲーム本体・QR・公開設定を変更していません。
