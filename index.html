@@ -31,6 +31,7 @@
       <div class="board-shell">
         <div class="board-topline"><span class="mission"><i></i><span id="mission">出口の階段をめざそう</span></span><button id="zoom" class="zoom-button" aria-label="盤面を拡大する" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5M7 10h6M10 7v6"/></svg></button></div>
         <canvas id="board" tabindex="0" role="img" aria-label="パズル盤面。方向キーで移動、Zで1手戻す、Cで仲間を切り替え。"></canvas>
+        <div id="goal-celebration" class="goal-celebration" aria-hidden="true" hidden><span>✧</span><strong>クリア！</strong><small>みんな、出口に到着！</small></div>
         <div class="board-bottomline"><span id="difficulty">やさしい</span><span class="completion"><span id="completed">0</span><span class="muted"> / 30 CLEAR</span></span></div>
         <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
       </div>

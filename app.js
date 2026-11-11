@@ -3,7 +3,7 @@
   const E=globalThis.PuzzleEngine,levels=globalThis.PUZZLE_LEVELS,$=id=>document.getElementById(id);
   const view=new globalThis.PuzzleBoardView($('board')),audio=new globalThis.PuzzleEffects();
   const groups=['やさしい','ふつう','むずかしい'];
-  let index=0,state=E.create(levels[0]),history=[],completed=new Set(),frame=0,routeTimer=0,toastTimer=0,holdTimer=0,heldPointer=null,heldButton=null,gesture=null,elapsed=0,clockStart=performance.now(),modalKind='',pendingWin=false,returnFocus=null;
+  let index=0,state=E.create(levels[0]),history=[],completed=new Set(),frame=0,routeTimer=0,toastTimer=0,holdTimer=0,goalTimer=0,heldPointer=null,heldButton=null,gesture=null,elapsed=0,clockStart=performance.now(),modalKind='',pendingWin=false,returnFocus=null;
   const tips=['扉の羽を横から押すと、くるりと回転。','石は押せるけれど、引けない。穴を埋めて道を作ろう。','回転する扉のまわりには、空間が必要。','石がすべて穴に重なると、沈んで道になる。','扉と石を組み合わせて、道を開こう。','仲間を切り替えて、全員を出口へ。'];
   function setText(id,text){$(id).textContent=String(text);}
   function announce(text){setText('announcement',text);}
@@ -25,23 +25,25 @@
   }
   function draw(previous=null,event='walk'){
     cancelAnimationFrame(frame);
-    if(!previous||view.reduced){view.draw(state);return;}
+    if((!previous||view.reduced)&&!view.hasGoalEffect()){view.draw(state);return;}
     const start=performance.now(),current=state;
-    function tick(t){if(state!==current)return;const p=Math.min(1,(t-start)/150),ease=1-Math.pow(1-p,3);view.draw(current,previous,ease,event);if(p<1)frame=requestAnimationFrame(tick);}
+    function tick(t){if(state!==current)return;const p=!previous||view.reduced?1:Math.min(1,(t-start)/150),ease=1-Math.pow(1-p,3);view.draw(current,previous,ease,event);if(p<1||view.hasGoalEffect(t))frame=requestAnimationFrame(tick);}
     frame=requestAnimationFrame(tick);
   }
-  function finish(){completed.add(index);pauseClock();sync();stopInput();pendingWin=true;showWin();}
+  function cancelGoal(){clearTimeout(goalTimer);goalTimer=0;pendingWin=false;view.clearGoalEffect();$('goal-celebration').hidden=true;}
+  function settleWin(){if(!pendingWin||!state.won||document.hidden||$('panel').open)return;cancelGoal();draw();showWin();}
+  function finish(){completed.add(index);pauseClock();sync();stopInput();pendingWin=true;$('goal-celebration').hidden=false;announce('クリア！ みんな、出口に到着しました');const finished=state;goalTimer=setTimeout(()=>{goalTimer=0;if(state===finished)settleWin();},view.arrival?.duration||180);}
   function step(d){
     if($('panel').open||document.hidden||state.won)return false;
     audio.unlock();audio.restoreVolume();const before=state,result=E.move(state,d);
     audio.play(result.event);
     if(result.state===state)return false;
-    remember();state=result.state;sync();draw(before,result.event);
+    remember();state=result.state;if(result.event==='exit'||result.event==='win')view.beginGoalEffect(state.level.exit,state.won);sync();draw(before,result.event);
     if(result.event==='exit')toast('ひとり到着！ 次の仲間を動かそう');
     if(state.won)finish();return true;
   }
-  function undo(){if(!history.length)return;stopInput();closePanel();state=history.pop();pendingWin=false;resumeClock();audio.unlock();audio.restoreVolume();audio.play('undo');sync();draw();announce('1手戻しました');}
-  function load(next){if(!Number.isInteger(next)||next<0||next>=levels.length)return;stopInput();closePanel();clearTimeout(toastTimer);$('toast').hidden=true;cancelAnimationFrame(frame);index=next;state=E.create(levels[index]);history=[];elapsed=0;clockStart=null;pendingWin=false;view.zoom=false;$('zoom').setAttribute('aria-pressed','false');$('zoom').setAttribute('aria-label','盤面を拡大する');resumeClock();sync();draw();announce(`レベル${state.level.group+1}、${state.level.floor}面を開始`);}
+  function undo(){if(!history.length)return;stopInput();cancelGoal();closePanel();state=history.pop();resumeClock();audio.unlock();audio.restoreVolume();audio.play('undo');sync();draw();announce('1手戻しました');}
+  function load(next){if(!Number.isInteger(next)||next<0||next>=levels.length)return;stopInput();cancelGoal();closePanel();clearTimeout(toastTimer);$('toast').hidden=true;cancelAnimationFrame(frame);index=next;state=E.create(levels[index]);history=[];elapsed=0;clockStart=null;view.zoom=false;$('zoom').setAttribute('aria-pressed','false');$('zoom').setAttribute('aria-label','盤面を拡大する');resumeClock();sync();draw();announce(`レベル${state.level.group+1}、${state.level.floor}面を開始`);}
   function element(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
   function action(label,callback,primary=false){const b=element('button',label,`action${primary?' primary':''}`);b.addEventListener('click',callback);$('panel-actions').append(b);return b;}
   function openPanel(kind,kicker,title){stopInput();pauseClock();modalKind=kind;returnFocus=document.activeElement;setText('panel-kicker',kicker);setText('panel-title',title);$('panel-body').replaceChildren();$('panel-actions').replaceChildren();$('panel').showModal();}
@@ -71,7 +73,7 @@
   }
   function changePlayer(){stopInput();const next=E.switchPlayer(state);if(next===state)return;remember();state=next;audio.unlock();audio.restoreVolume();audio.play('switch');sync();draw();toast(`仲間 ${state.active+1} に切り替え`);}
   $('stages').addEventListener('click',showStages);$('help').addEventListener('click',showHelp);$('undo').addEventListener('click',undo);$('reset').addEventListener('click',()=>confirmLoad(index));$('switch').addEventListener('click',changePlayer);$('close-panel').addEventListener('click',closePanel);
-  $('panel').addEventListener('cancel',e=>{e.preventDefault();closePanel();});$('panel').addEventListener('close',()=>{modalKind='';resumeClock();if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});});
+  $('panel').addEventListener('cancel',e=>{e.preventDefault();closePanel();});$('panel').addEventListener('close',()=>{modalKind='';resumeClock();if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});settleWin();});
   $('sound').addEventListener('click',()=>{const enabled=audio.toggle();audio.restoreVolume();setText('sound-label',enabled?'ON':'OFF');$('sound').setAttribute('aria-pressed',String(enabled));$('sound').setAttribute('aria-label',enabled?'効果音をオフにする':'効果音をオンにする');if(enabled)audio.play('switch');});
   $('zoom').addEventListener('click',()=>{stopInput();view.zoom=!view.zoom;$('zoom').setAttribute('aria-pressed',String(view.zoom));$('zoom').setAttribute('aria-label',view.zoom?'盤面全体を表示する':'盤面を拡大する');draw();if(view.zoom)toast('拡大表示 · 人物に合わせて移動します');});
   for(const b of document.querySelectorAll('[data-dir]')){
@@ -100,7 +102,7 @@
   });
   for(const event of ['pointercancel','lostpointercapture'])board.addEventListener(event,e=>{if(gesture?.id===e.pointerId)gesture=null;});
   window.addEventListener('blur',()=>{stopInput();pauseClock();audio.muteNow();});window.addEventListener('focus',()=>{resumeClock();audio.restoreVolume();});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){stopInput();pauseClock();audio.muteNow();}else{resumeClock();audio.restoreVolume();}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){stopInput();pauseClock();audio.muteNow();}else{resumeClock();audio.restoreVolume();settleWin();}});
   new ResizeObserver(()=>draw()).observe(board);
   setInterval(()=>{if(!document.hidden)setText('timer',timeLabel(nowTime()));},500);
   sync();draw();
