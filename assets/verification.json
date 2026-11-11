@@ -1,0 +1,14 @@
+{
+  "url": "https://president-code-ai.github.io/Puzzle-Boy/",
+  "png": "Puzzle-Boy-QR.png",
+  "svg": "Puzzle-Boy-QR.svg",
+  "width": 984,
+  "height": 984,
+  "version": 4,
+  "errorCorrection": "M",
+  "mask": 0,
+  "quietZoneModules": 4,
+  "decodedFromPng": "https://president-code-ai.github.io/Puzzle-Boy/",
+  "pngCrc": "pass",
+  "reedSolomonSyndromes": "pass"
+}
